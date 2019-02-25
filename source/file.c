@@ -12,7 +12,6 @@ typedef unsigned char byte;
 struct SaveFile gSaveFile;
 
 static const char fileMagic[] = "CUBECRAFTvALPHA";
-static const char *errorMessage = NULL;
 
 //Generate serialize and deserialize functions for integer types
 #define X(typename)                                                             \
@@ -194,11 +193,6 @@ static void write_save(struct SaveFile *save, byte *buffer, size_t bufSize)
     assert(bufSize >= blockData - buffer);  //Make darn sure our buffer was the correct size
 }
 
-const char *file_get_error(void)
-{
-    return errorMessage;
-}
-
 #if defined(PLATFORM_WII)
 
 static const char savePath[] = "/apps/cubecraft/worlds";
@@ -365,44 +359,16 @@ void file_init(void)
     s32 status;
     u8 *sysWorkArea;
     
-    errorMessage = NULL;
     status = CARD_Init(gameCode, makerCode);
     file_log("CARD_Init returned %i", status);
-    if (status != CARD_ERROR_READY)
-    {
-        errorMessage = "Failed to initialize memory card";
-        return;
-    }
-    
     sysWorkArea = memalign(32, CARD_WORKAREA);
     status = CARD_Mount(CARD_SLOTA, sysWorkArea, card_remove_callback);
     file_log("CARD_Mount returned %i", status);
-    if (status != CARD_ERROR_READY)
-    {
-        errorMessage = "Failed to mount memory card in Slot A";
-        return;
-    }
 }
 
 void file_log(const char *fmt, ...)
 {
-    va_list args;
-    size_t bufferSize = 16;
-    size_t requiredBufSize;
-    char *buffer = malloc(bufferSize);
-    
-    va_start(args, fmt);
-    requiredBufSize = vsnprintf(buffer, bufferSize, fmt, args) + 1;
-    va_end(args);
-    if (requiredBufSize > bufferSize)
-    {
-        buffer = realloc(buffer, requiredBufSize);
-        va_start(args, fmt);
-        vsnprintf(buffer, requiredBufSize, fmt, args);
-        va_end(args);
-    }
-    puts(buffer);
-    free(buffer);
+    //Logging is only available on Wii
 }
 
 void file_enumerate(bool (*callback)(const char *filename))
@@ -410,7 +376,6 @@ void file_enumerate(bool (*callback)(const char *filename))
     card_dir cardDir;
     s32 status;
     
-    errorMessage = NULL;
     status = CARD_FindFirst(CARD_SLOTA, &cardDir, false);
     while (status != CARD_ERROR_NOFILE)
     {

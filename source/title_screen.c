@@ -85,7 +85,6 @@ static struct Menu eraseconfirmMenu = {
     ARRAY_LENGTH(eraseconfirmMenuItems),
 };
 
-static void start_title_screen(void);
 static void main_menu_init(void);
 static void files_menu_init(void);
 static void newgame_menu_init(void);
@@ -125,13 +124,16 @@ static void draw_title_background(void)
     GX_LoadPosMtxImm(posMtx, GX_PNMTX0);
     world_render_chunks_at(0, 0);
     
-    bkgndAngle += 0.05;
-    if (bkgndAngle >= 360.0)
-        bkgndAngle = 0.0;
-    
     drawing_set_2d_mode();
     draw_title_banner();
     draw_version_copyright();
+}
+
+static void update_title_background(void)
+{
+    bkgndAngle += 0.05;
+    if (bkgndAngle >= 360.0)
+        bkgndAngle = 0.0;
 }
 
 //==================================================
@@ -140,6 +142,8 @@ static void draw_title_background(void)
 
 static void eraseconfirm_menu_main(void)
 {
+    update_title_background();
+    
     switch (menu_process_input())
     {
         case 0:  //Yes
@@ -165,10 +169,11 @@ static void eraseconfirm_menu_init(void)
 
 static void startgame_menu_main(void)
 {
+    update_title_background();
+    
     switch (menu_process_input())
     {
         case 0:  //Start!
-            world_close();
             assert(strlen(saveFiles[fileNum]) > 0);
             file_load_world(saveFiles[fileNum]);
             field_init();
@@ -205,7 +210,7 @@ static char seedKeyboardBuffer[SEED_MAX];
 
 static bool check_if_already_exists(const char *name)
 {
-    if (!stricmp(name, nameKeyboardBuffer))
+    if (!strcasecmp(name, nameKeyboardBuffer))
     {
         menu_msgbox_init("File already exists.");
         return false;
@@ -218,6 +223,8 @@ static bool check_if_already_exists(const char *name)
 
 static void name_kb_main(void)
 {
+    update_title_background();
+    
     if (menu_msgbox_is_open())
     {
         menu_msgbox_process_input();
@@ -260,6 +267,8 @@ static void name_kb_init(void)
 
 static void seed_kb_main(void)
 {
+    update_title_background();
+    
     switch (keyboard_process_input())
     {
         case KEYBOARD_OK:
@@ -290,6 +299,8 @@ static void seed_kb_init(void)
 
 static void newgame_menu_main(void)
 {
+    update_title_background();
+    
     if (menu_msgbox_is_open())
     {
         menu_msgbox_process_input();
@@ -316,7 +327,6 @@ static void newgame_menu_main(void)
                     break;
                 }
                 
-                world_close();
                 //Initialize player's starting position
                 gSaveFile.spawnX = 5;
                 gSaveFile.spawnY = 200;
@@ -357,6 +367,8 @@ static void newgame_menu_init(void)
 static void files_menu_main(void)
 {
     int item;
+    
+    update_title_background();
     
     item = menu_process_input();
     if (item == MENU_NORESULT)
@@ -432,10 +444,12 @@ static void files_menu_init(void)
 
 static void main_menu_main(void)
 {
+    update_title_background();
+    
     switch (menu_process_input())
     {
         case MENU_CANCEL:
-            menu_wait_close_anim(start_title_screen);
+            menu_wait_close_anim(title_screen_init);
             break;
         case 0:  //Start Game
             menu_wait_close_anim(files_menu_init);
@@ -465,41 +479,20 @@ static void main_menu_init(void)
 
 static void title_screen_main(void)
 {
-    if (menu_msgbox_is_open())
-    {
-        menu_msgbox_process_input();
-    }
-    else
-    {
-        if (gControllerPressedKeys & PAD_BUTTON_START)
-            main_menu_init();
-    }
+    update_title_background();
+    if (gControllerPressedKeys & PAD_BUTTON_START)
+        main_menu_init();
 }
 
 static void title_screen_draw(void)
 {
     draw_title_background();
-    if (menu_msgbox_is_open())
+    if (!(pressStartBlinkCounter & 0x20))
     {
-        menu_draw();
+        text_set_font_size(16, 32);
+        text_draw_string(gDisplayWidth / 2, 300, TEXT_HCENTER, "Press Start");
     }
-    else
-    {
-        if (!(pressStartBlinkCounter & 0x20))
-        {
-            text_set_font_size(16, 32);
-            text_draw_string(gDisplayWidth / 2, 300, TEXT_HCENTER, "Press Start");
-        }
-        pressStartBlinkCounter++;
-    }
-}
-
-static void start_title_screen(void)
-{
-    drawing_set_2d_mode();
-    set_main_callback(title_screen_main);
-    set_draw_callback(title_screen_draw);
-    pressStartBlinkCounter = 0;
+    pressStartBlinkCounter++;
 }
 
 void title_screen_init(void)
@@ -508,11 +501,12 @@ void title_screen_init(void)
     strcpy(gSaveFile.seed, "12345");
     gSaveFile.modifiedChunks = NULL;
     gSaveFile.modifiedChunksCount = 0;
-    
-    if (file_get_error() != NULL)
-        menu_msgbox_init(file_get_error());
     world_init();
-    start_title_screen();
+    
+    drawing_set_2d_mode();
+    set_main_callback(title_screen_main);
+    set_draw_callback(title_screen_draw);
+    pressStartBlinkCounter = 0;
 }
 
 void title_screen_load_textures(void)

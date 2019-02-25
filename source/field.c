@@ -97,7 +97,7 @@ static void pause_menu_main(void)
             gSaveFile.spawnX = floorf(playerPosition.x);
             gSaveFile.spawnY = floorf(playerPosition.y);
             gSaveFile.spawnZ = floorf(playerPosition.z);
-            file_save_world();
+            file_log("menu_process_input(): exiting world. position: %i, %i, %i", gSaveFile.spawnX, gSaveFile.spawnY, gSaveFile.spawnZ);
             world_close();
             menu_wait_close_anim(title_screen_init);
             break;
@@ -451,23 +451,6 @@ static int analog_stick_clamp(int value, int deadzone)
     return 0;
 }
 
-static bool block_intersects_with_player(int x, int y, int z)
-{
-    int xMin = floorf(playerPosition.x - PLAYER_RADIUS);
-    int xMax = floorf(playerPosition.x + PLAYER_RADIUS);
-    int yMin = floorf(playerPosition.y);
-    int yMax = floorf(playerPosition.y + PLAYER_HEIGHT);
-    int zMin = floorf(playerPosition.z - PLAYER_RADIUS);
-    int zMax = floorf(playerPosition.z + PLAYER_RADIUS);
-    
-    if (x >= xMin && x <= xMax
-     && y >= yMin && y <= yMax
-     && z >= zMin && z <= zMax)
-        return true;
-    else
-        return false;
-}
-
 static void field_main(void)
 {
     struct Vec3f motion;
@@ -501,15 +484,11 @@ static void field_main(void)
     {
         if (selectedBlockActive && gSaveFile.inventory[inventorySelection].count > 0)
         {
-            int blockX = selectedBlockPos.x + selectedBlockFace.x;
-            int blockY = selectedBlockPos.y + selectedBlockFace.y;
-            int blockZ = selectedBlockPos.z + selectedBlockFace.z;
-            
-            if (!block_intersects_with_player(blockX, blockY, blockZ))
-            {
-                world_set_block(blockX, blockY, blockZ, gSaveFile.inventory[inventorySelection].type);
-                gSaveFile.inventory[inventorySelection].count--;
-            }
+            world_set_block(selectedBlockPos.x + selectedBlockFace.x,
+                            selectedBlockPos.y + selectedBlockFace.y,
+                            selectedBlockPos.z + selectedBlockFace.z,
+                            gSaveFile.inventory[inventorySelection].type);
+            gSaveFile.inventory[inventorySelection].count--;
         }
     }
     

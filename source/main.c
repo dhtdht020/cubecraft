@@ -27,29 +27,6 @@ static int frameBufferNum = 0;
 static u64 lastTime = 0;
 static u64 newTime = 0;
 static int frames = 0;
-static s8 sysReset = -1;
-
-
-#if defined(PLATFORM_WII)
-
-static void system_power_callback(void)
-{
-    sysReset = SYS_POWEROFF_STANDBY;
-}
-
-static void system_reset_callback(void)
-{
-    sysReset = SYS_RETURNTOMENU;
-}
-
-#elif defined(PLATFORM_GAMECUBE)
-
-static void system_reset_callback(void)
-{
-    sysReset = SYS_RESTART;
-}
-
-#endif
 
 static void setup_graphics(void)
 {
@@ -116,21 +93,11 @@ static void read_input(void)
 
 int main(void)
 {
-    //Initialize gamepads
     PAD_Init();
-    
-    //Install reset button handlers
-    SYS_SetResetCallback(system_reset_callback);
-#ifdef PLATFORM_WII
-    SYS_SetPowerCallback(system_power_callback);
-#endif
-
     setup_graphics();
     
     //Initialize file system
     file_init();
-    
-    file_log("hello! number = %i", 1234);
     
     //Load textures
     title_screen_load_textures();
@@ -166,9 +133,6 @@ int main(void)
             frames = 0;
             lastTime = newTime;
         }
-        
-        if (sysReset != -1)
-            SYS_ResetSystem(sysReset, 0, 0);
     }
     return 0;
 }
